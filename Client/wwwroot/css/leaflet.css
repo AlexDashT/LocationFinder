@@ -1,0 +1,16 @@
+﻿/* Custom Popup Styling */
+.custom-popup .leaflet-popup-content-wrapper {
+    border-radius: 15px; /* Curved corners */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3); /* Soft shadow */
+    background-color: #f9f9f9; /* Light background */
+    padding: 10px; /* Add padding for better spacing */
+}
+
+.custom-popup .leaflet-popup-tip {
+    background-color: #f9f9f9; /* Match background with popup */
+}
+
+.custom-popup .leaflet-popup-close-button {
+    font-size: 16px;
+    color: #333; /* Close button color */
+}

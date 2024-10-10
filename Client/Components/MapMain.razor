@@ -1,0 +1,48 @@
+﻿<!-- Pages/Map.razor -->
+@page "/map"
+
+@using System.Drawing
+@inject IJSRuntime jsRuntime
+<PageTitle>Index</PageTitle>
+
+<div id="map" style="height: 500px;"></div>
+@code {
+
+    [Parameter]
+    public List<MarkerData> Markers { get; set; }
+
+    private IJSObjectReference _map;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _map = await jsRuntime.InvokeAsync<IJSObjectReference>("leafletInterop.createMap", "map", 51.505, -0.09, 13);
+
+            if (Markers != null && Markers.Count > 0)
+            {
+                // Add markers from the parameter
+                await jsRuntime.InvokeVoidAsync("leafletInterop.addMarkers", _map, Markers);
+            }
+        }
+    }
+    // This method is called whenever the parameters change (i.e., Markers)
+    protected override async Task OnParametersSetAsync()
+    {
+        // Update the markers whenever the Markers parameter changes
+        if (_map != null && Markers != null && Markers.Count > 0)
+        {
+            await jsRuntime.InvokeVoidAsync("leafletInterop.addMarkers", _map, Markers);
+        }
+    }
+
+    // MarkerData class to store marker information
+    public class MarkerData
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+        public string PopupContent { get; set; }
+        public string IconUrl { get; set; }
+    }
+
+}

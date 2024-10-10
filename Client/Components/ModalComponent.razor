@@ -1,0 +1,44 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime jsRuntime
+
+
+<div class="modal fade" id="@ModalId" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">@Title</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @ChildContent
+            </div>
+            <div class="modal-footer">
+                @if (OnCancel.HasDelegate)
+                {
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                }
+                <button type="button" class="btn btn-primary" @onclick="OnConfirm">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string ModalId { get; set; } = "exampleModal";
+    [Parameter] public string Title { get; set; } = "Modal title";
+    [Parameter] public RenderFragment ChildContent { get; set; } // The content inside the modal
+    [Parameter] public EventCallback OnConfirm { get; set; }     // Confirmation callback
+    [Parameter] public EventCallback OnCancel { get; set; }      // Cancel callback
+
+    // JavaScript method to show modal
+    public async Task Show()
+    {
+        await jsRuntime.InvokeVoidAsync("ShowModal", ModalId);
+    }
+
+    // JavaScript method to hide modal
+    public async Task Hide()
+    {
+        await jsRuntime.InvokeVoidAsync("HideModal", ModalId);
+    }
+}
