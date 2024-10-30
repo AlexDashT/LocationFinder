@@ -1,0 +1,158 @@
+﻿@page "/"
+@rendermode InteractiveAuto
+@inject CategoryService CategoryService
+@inject LocationService LocationService
+
+
+<PageTitle>Home</PageTitle>
+<h3>Welcome to the Location Map</h3>
+
+<!-- The modal for adding a new marker -->
+<ModalComponent @ref="_modal" ModalId="addLocationModal" Title="Add New Location" OnConfirm="AddMarker">
+    <div class="mb-3">
+        <label for="descriptionInput" class="form-label">Description</label>
+        <textarea class="form-control" @bind="newLocation.Description"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label for="categoryInput" class="form-label">Category</label>
+        <select class="form-select" @bind="newLocation.CategoryId">
+            <option value="">Select Category</option>
+            @foreach (var category in Categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+                @foreach (var subCategory in category.Subcategories)
+                {
+                    <option value="@subCategory.Id">&nbsp;&nbsp;-- @subCategory.Name</option>
+                }
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <button type="button" class="btn btn-link" @onclick="ShowAddCategoryModal">Add New Category</button>
+    </div>
+</ModalComponent>
+
+<!-- Modal for Adding Category -->
+<ModalComponent @ref="_categoryModal" ModalId="addCategoryModal" Title="Add New Category" OnConfirm="AddCategory">
+    <div class="mb-3">
+        <label for="categoryNameInput" class="form-label">Category Name</label>
+        <input type="text" class="form-control" @bind="newCategoryName" />
+
+        <label for="parentCategoryInput" class="form-label mt-2">Parent Category (Optional)</label>
+        <select class="form-select" @bind="parentCategoryId">
+            <option value="">None</option>
+            @foreach (var category in Categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+    </div>
+</ModalComponent>
+
+
+<div class="container mt-3">
+    <MapMain Markers="@_mapMarkers" />
+</div>
+
+@code {
+    private List<Category> Categories = new List<Category>(); // Categories loaded from the database
+    private Guid? selectedCategoryId;                          // Selected category ID for the location
+                                                               // Category-related fields
+    private string newCategoryName;
+    private Guid? parentCategoryId;
+
+    private List<Location> Locations = new List<Location>();
+    private LocationDto newLocation = new LocationDto();
+
+    private MapMain.MarkerData newMarker = new MapMain.MarkerData();
+    // List of markers to pass to the map component
+    private List<MapMain.MarkerData> _mapMarkers = new List<MapMain.MarkerData>();
+    // Variables to hold marker data
+    private double newMarkerLat;
+    private double newMarkerLng;
+    private string newMarkerDescription;
+
+    private ModalComponent _modal;
+    private ModalComponent _categoryModal;
+    private static Home _instance;
+
+    protected override async void OnInitialized()
+    {
+        _instance = this;
+        Categories = await CategoryService.GetCategoriesAsync();
+        await AddLocationsToMarkers();
+        StateHasChanged();
+    }
+
+    private async Task AddLocationsToMarkers()
+    {
+        Locations = await LocationService.GetAllLocationsAsync();
+
+        foreach (Location location in Locations)
+        {
+            _mapMarkers.Add(new MapMain.MarkerData
+                {
+                    Lat = location.Latitude,
+                    Lng = location.Longitude,
+                    PopupContent = $"<b>{location.Category?.Name}</b><br>{location.Description}",
+                    IconUrl = "img/treeicon.png" // Use your custom icon URL
+                });
+        }
+    }
+
+    [JSInvokable]
+    public static async Task ShowAddLocationModal(double lat, double lng)
+    {
+        if (_instance != null)
+        {
+            await _instance.ShowModal(lat, lng); // Call instance method to show the modal
+        }
+    }
+
+    // Instance method to show the modal
+    private async Task ShowModal(double lat, double lng)
+    {
+        newLocation.Latitude = lat;
+        newLocation.Longitude = lng;
+
+        // Show the modal
+        await _modal.Show();
+    }
+    private async Task AddMarker()
+    {
+        if (!string.IsNullOrEmpty(newLocation.Description) && newLocation.CategoryId.HasValue)
+        {
+            await LocationService.AddLocationAsync(newLocation);
+
+            // Refresh the list of locations after adding the new one
+            await AddLocationsToMarkers();
+
+            // Clear the newLocation object
+            newLocation = new LocationDto();
+
+            await _modal.Hide();
+            // Reset the form fields after adding the marker
+            newMarkerDescription = string.Empty;
+        }
+    }
+    private async Task AddCategory()
+    {
+        if (!string.IsNullOrEmpty(newCategoryName))
+        {
+            await CategoryService.AddCategoryAsync(newCategoryName, parentCategoryId);
+
+            // Refresh the categories list
+            Categories = await CategoryService.GetCategoriesAsync();
+        }
+
+        await _categoryModal.Hide();
+    }
+
+    private Task ShowAddCategoryModal()
+    {
+        return _categoryModal.Show();
+    }
+}
+

@@ -1,11 +1,4 @@
-﻿using LocationFinder.Shared.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace LocationFinder.Shared.Domain.Dtos
+﻿namespace LocationFinder.Shared.Domain.Dtos
 {
     public class LocationDto
     {
