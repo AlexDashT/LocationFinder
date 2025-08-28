@@ -1,13 +1,20 @@
 ﻿<!-- Pages/Map.razor -->
 @page "/map"
+@implements IAsyncDisposable
 @rendermode InteractiveAuto
 
 @using System.Drawing
+@using LocationFinder.Client.Models
+@using Microsoft.JSInterop
 @inject IJSRuntime jsRuntime
 <PageTitle>Index</PageTitle>
 
-<div id="map" style="height: 500px;"></div>
+<div id="map" style="height: @Height;"></div>
 @code {
+    [Parameter] public double InitialLat { get; set; } = 51.505;
+    [Parameter] public double InitialLng { get; set; } = -0.09;
+    [Parameter] public int InitialZoom { get; set; } = 13;
+    [Parameter] public string Height { get; set; } = "500px";
 
     [Parameter]
     public List<MarkerData> Markers { get; set; }
@@ -18,12 +25,19 @@
     {
         if (firstRender)
         {
-            _map = await jsRuntime.InvokeAsync<IJSObjectReference>("leafletInterop.createMap", "map", 51.505, -0.09, 13);
-
-            if (Markers != null && Markers.Count > 0)
+            try
             {
-                // Add markers from the parameter
-                await jsRuntime.InvokeVoidAsync("leafletInterop.addMarkers", _map, Markers);
+                _map = await jsRuntime.InvokeAsync<IJSObjectReference>("leafletInterop.createMap", "map", InitialLat, InitialLng, InitialZoom);
+
+                if (Markers != null && Markers.Count > 0)
+                {
+                    // Add markers from the parameter
+                    await jsRuntime.InvokeVoidAsync("leafletInterop.addMarkers", _map, Markers);
+                }
+            }
+            catch (JSException ex)
+            {
+                Console.WriteLine($"Error during map initialization: {ex.Message}");
             }
         }
     }
@@ -33,17 +47,21 @@
         // Update the markers whenever the Markers parameter changes
         if (_map != null && Markers != null && Markers.Count > 0)
         {
-            await jsRuntime.InvokeVoidAsync("leafletInterop.addMarkers", _map, Markers);
+            try
+            {
+                await jsRuntime.InvokeVoidAsync("leafletInterop.addMarkers", _map, Markers);
+            }
+            catch (JSException ex)
+            {
+                Console.WriteLine($"Error updating markers: {ex.Message}");
+            }
         }
     }
-
-    // MarkerData class to store marker information
-    public class MarkerData
+    public async ValueTask DisposeAsync()
     {
-        public double Lat { get; set; }
-        public double Lng { get; set; }
-        public string PopupContent { get; set; }
-        public string IconUrl { get; set; }
+        if (_map != null)
+        {
+            await _map.DisposeAsync();
+        }
     }
-
 }

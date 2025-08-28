@@ -5,6 +5,9 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
+        // Attach a layer group to the map object to manage markers
+        map.markerLayer = L.layerGroup().addTo(map);
+
         map.on('contextmenu', function (e) {
             // Create a popup with an "Add Location" button
             var popup = L.popup()
@@ -30,6 +33,14 @@
         }
     },
     addMarkers: function (map, markers) {
+        if (!map || !map.markerLayer) {
+            console.error("Map or marker layer not initialized.");
+            return;
+        }
+
+        // Clear existing markers before adding new ones
+        map.markerLayer.clearLayers();
+
         markers.forEach(marker => {
             var markerOptions = {};
             if (marker.iconUrl) {
@@ -42,7 +53,7 @@
                 markerOptions.icon = customIcon;
             }
 
-            var leafletMarker = L.marker([marker.lat, marker.lng], markerOptions).addTo(map);
+            var leafletMarker = L.marker([marker.lat, marker.lng], markerOptions).addTo(map.markerLayer);
             if (marker.popupContent) {
                 leafletMarker.bindPopup(marker.popupContent, {
                     closeButton: true,
